@@ -171,3 +171,4 @@ Edit `src/components/KineticText.jsx` — tweak `spring` config `stiffness` / `d
 
 ### Change video resolution
 Change `width` and `height` in `src/Root.jsx` (default: 1080×1920 vertical).
+# Video-Gen
