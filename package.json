@@ -11,7 +11,8 @@
     "dev": "concurrently \"npm run server\" \"npm run dashboard:dev\"",
     "start": "npm run dashboard:build && npm run server",
     "youtube:setup": "node scripts/getYoutubeToken.js",
-    "auto": "node scripts/autoGenerate.js"
+    "auto": "node scripts/autoGenerate.js",
+    "voices": "node scripts/listVoices.js"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.290",

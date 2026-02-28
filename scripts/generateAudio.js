@@ -18,7 +18,7 @@ async function generateAudio(scriptText, emit = () => {}) {
   const url      = `${ELEVENLABS_BASE}/text-to-speech/${voiceId}`;
 
   emit('log', { message: `Sending text (${scriptText.length} chars) to ElevenLabs voice: ${voiceId}…` });
-  emit('log', { message: `Using model: eleven_multilingual_v2 (highest quality)` });
+  emit('log', { message: `Using model: eleven_turbo_v2_5 (Indian English accent)` });
 
   // Add a natural pause after each sentence so the audio has clear breathing room
   // between scenes — helps the on-screen text keep up with the spoken words.
@@ -28,11 +28,11 @@ async function generateAudio(scriptText, emit = () => {}) {
 
   const body = {
     text          : formattedText,
-    model_id      : 'eleven_multilingual_v2',   // highest quality, best pacing & expressiveness
+    model_id      : 'eleven_turbo_v2_5',  // supports Indian English accent well
     voice_settings: {
-      stability        : 0.42,   // clear enunciation while still expressive
-      similarity_boost : 0.82,
-      style            : 0.60,   // energetic promotional tone
+      stability        : 0.48,   // consistent Indian accent delivery
+      similarity_boost : 0.90,   // stay close to the voice's natural accent
+      style            : 0.55,   // energetic but clear
       use_speaker_boost: true,
     },
   };
