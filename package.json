@@ -1,0 +1,32 @@
+{
+  "name": "video-gen",
+  "version": "1.0.0",
+  "description": "AI-powered CLI + Dashboard tool to generate 20-second vertical explainer videos",
+  "main": "index.js",
+  "scripts": {
+    "cli": "node index.js",
+    "server": "node server.js",
+    "dashboard:dev": "cd dashboard && npm run dev",
+    "dashboard:build": "cd dashboard && npm run build",
+    "dev": "concurrently \"npm run server\" \"npm run dashboard:dev\"",
+    "start": "npm run dashboard:build && npm run server"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.290",
+    "@remotion/renderer": "4.0.290",
+    "axios": "^1.7.7",
+    "concurrently": "^9.2.1",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.22.1",
+    "fs-extra": "^11.2.0",
+    "music-metadata": "^10.7.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "remotion": "4.0.290",
+    "uuid": "^11.1.0"
+  },
+  "remotion": {
+    "entryPoint": "./src/index.jsx"
+  }
+}
