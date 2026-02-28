@@ -158,9 +158,18 @@ async function generateScript(topic, emit = () => {}) {
 
   const fullScript = lines.join(' ');
 
-  emit('log', { message: `Script ready: ${scenes.length} scenes | "${fullScript.substring(0, 80)}..."` });
+  // Build a YouTube-ready title from the hook line (first scene)
+  const title = lines[0]
+    .replace(/[!?.]+$/, '')                       // strip trailing punctuation
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+    .trim();
 
-  return { fullScript, scenes };
+  emit('log', { message: `Script ready: ${scenes.length} scenes | "${fullScript.substring(0, 80)}..."` });
+  emit('log', { message: `Video title: "${title}"` });
+
+  return { fullScript, scenes, title };
 }
 
 module.exports = { generateScript };

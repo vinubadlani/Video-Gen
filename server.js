@@ -156,8 +156,8 @@ async function runPipeline(jobId, topic) {
     step   : 1,
     status : 'done',
     label  : 'Script Generated',
-    message: `${script.scenes.length} scenes created`,
-    payload: { scenes: script.scenes, fullScript: script.fullScript },
+    message: `${script.scenes.length} scenes created – title: "${script.title}"`,
+    payload: { scenes: script.scenes, fullScript: script.fullScript, title: script.title },
   });
 
   // ── Step 2: Audio ─────────────────────────────────────────────────────────
@@ -197,8 +197,8 @@ async function runPipeline(jobId, topic) {
     try {
       youtubeUrl = await uploadToYoutube(
         outputPath,
-        topic,
-        `AI-generated explainer video about "${topic}"`,
+        script.title || topic,
+        `${script.title || topic} — AI-generated explainer about "${topic}"`,
         emit
       );
       if (job) job.youtubeUrl = youtubeUrl;

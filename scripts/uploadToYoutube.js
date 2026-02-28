@@ -43,7 +43,7 @@ async function uploadToYoutube(videoPath, title, description = '', emit = () => 
   const oauth2Client = new google.auth.OAuth2(
     YOUTUBE_CLIENT_ID,
     YOUTUBE_CLIENT_SECRET,
-    'urn:ietf:wg:oauth:2.0:oob'
+    'http://localhost:4242/callback'
   );
   oauth2Client.setCredentials({ refresh_token: YOUTUBE_REFRESH_TOKEN });
 
@@ -55,11 +55,12 @@ async function uploadToYoutube(videoPath, title, description = '', emit = () => 
 
   // ── Upload ────────────────────────────────────────────────────────────────
   // YouTube Shorts = vertical video ≤ 60 s  +  #Shorts in title / description
-  const shortTitle = `${title} #Shorts`.slice(0, 100);
+  // Title: use the AI-generated hook title, append #Shorts, cap at 100 chars
+  const shortTitle = (`${title} #Shorts`).slice(0, 100);
   const shortDesc  = [
     description || `${title} – AI-generated explainer`,
     '',
-    '#Shorts #AI #ExplainerVideo #Education',
+    '#Shorts #AI #ExplainerVideo #Education #MRExplorer',
   ].join('\n');
 
   let lastPct = -1;

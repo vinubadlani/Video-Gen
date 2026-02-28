@@ -1,0 +1,80 @@
+name: Auto-Generate & Post YouTube Short
+
+# ─── Schedule (IST = UTC+5:30) ───────────────────────────────────────────────
+on:
+  schedule:
+    - cron: '30 4 * * *'   # 10:00 AM IST  (04:30 UTC)
+    - cron: '5 15 * * *'   # 08:35 PM IST  (15:05 UTC)
+  # Also allow manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Topic to generate (leave blank for random)'
+        required: false
+        default: ''
+
+jobs:
+  generate-and-post:
+    name: Generate Video & Post to YouTube
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Node.js ───────────────────────────────────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── 3. Chrome system dependencies (required by Remotion renderer) ────────
+      - name: Install Chrome dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+            libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+            libxfixes3 libxrandr2 libgbm1 libasound2 \
+            libpango-1.0-0 libpangocairo-1.0-0 libgtk-3-0 \
+            fonts-liberation wget ca-certificates
+
+      # ── 4. Install npm dependencies ──────────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 5. Ensure Remotion's bundled browser is ready ────────────────────────
+      - name: Prepare Remotion browser
+        run: npx remotion browser ensure
+        env:
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'false'
+
+      # ── 6. Run the pipeline ──────────────────────────────────────────────────
+      - name: Generate video & upload to YouTube
+        run: |
+          TOPIC="${{ github.event.inputs.topic }}"
+          if [ -z "$TOPIC" ]; then
+            node scripts/autoGenerate.js
+          else
+            node scripts/autoGenerate.js "$TOPIC"
+          fi
+        env:
+          GROQ_API_KEY:              ${{ secrets.GROQ_API_KEY }}
+          ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID:       ${{ secrets.ELEVENLABS_VOICE_ID }}
+          YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_PRIVACY:           public
+
+      # ── 7. Upload the rendered MP4 as a build artifact (optional, 1-day keep) ─
+      - name: Upload video artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-video-${{ github.run_number }}
+          path: output/*.mp4
+          retention-days: 1

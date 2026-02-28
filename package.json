@@ -10,7 +10,8 @@
     "dashboard:build": "cd dashboard && npm run build",
     "dev": "concurrently \"npm run server\" \"npm run dashboard:dev\"",
     "start": "npm run dashboard:build && npm run server",
-    "youtube:setup": "node scripts/getYoutubeToken.js"
+    "youtube:setup": "node scripts/getYoutubeToken.js",
+    "auto": "node scripts/autoGenerate.js"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.290",

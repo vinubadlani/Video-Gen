@@ -1,23 +1,22 @@
 /**
  * getYoutubeToken.js  –  Run ONCE to obtain a YouTube OAuth refresh token.
  *
- * Steps:
- *   1.  Add YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET to your .env file.
- *   2.  Run:  node scripts/getYoutubeToken.js
- *   3.  Open the printed URL, authorize the app, copy the code.
- *   4.  Paste the code when prompted – your refresh token will be printed.
- *   5.  Add  YOUTUBE_REFRESH_TOKEN=<token>  to your .env file.
+ * Works with "Desktop app" OAuth credentials (no redirect URI setup needed
+ * in Google Cloud Console — localhost is always allowed for Desktop apps).
  *
- * Google Cloud Console setup:
- *   1. Go to https://console.cloud.google.com
- *   2. Create / select a project, enable "YouTube Data API v3"
- *   3. Create OAuth 2.0 credentials (Desktop app type)
- *   4. Copy Client ID + Client Secret into .env
+ * Steps:
+ *   1.  Make sure YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET are in your .env
+ *   2.  Run:  npm run youtube:setup
+ *   3.  Your browser will open automatically — sign in and allow access
+ *   4.  The refresh token is written to .env automatically
  */
 
 require('dotenv').config();
-const { google }   = require('googleapis');
-const readline     = require('readline');
+const { google } = require('googleapis');
+const http       = require('http');
+const url        = require('url');
+const fs         = require('fs');
+const path       = require('path');
 
 const { YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET } = process.env;
 
@@ -28,46 +27,103 @@ if (!YOUTUBE_CLIENT_ID || !YOUTUBE_CLIENT_SECRET) {
   process.exit(1);
 }
 
-const SCOPES = ['https://www.googleapis.com/auth/youtube.upload'];
+const PORT         = 4242;
+const REDIRECT_URI = `http://localhost:${PORT}/callback`;
+const SCOPES       = ['https://www.googleapis.com/auth/youtube.upload'];
 
 const oauth2Client = new google.auth.OAuth2(
   YOUTUBE_CLIENT_ID,
   YOUTUBE_CLIENT_SECRET,
-  'urn:ietf:wg:oauth:2.0:oob'   // "Out-of-band" – no redirect server needed
+  REDIRECT_URI
 );
 
 const authUrl = oauth2Client.generateAuthUrl({
   access_type: 'offline',
   scope      : SCOPES,
-  prompt     : 'consent',        // force consent screen so refresh_token is issued
+  prompt     : 'consent',  // always re-consent so refresh_token is returned
 });
 
 console.log('\n=== YouTube OAuth Token Setup ===\n');
-console.log('1. Open this URL in your browser:\n');
-console.log(`   ${authUrl}\n`);
-console.log('2. Sign in with your YouTube channel account.');
-console.log('3. After authorising, Google will show a code — copy it.\n');
+console.log('Opening browser for authorisation…');
+console.log('If the browser does not open, visit this URL manually:\n');
+console.log(`  ${authUrl}\n`);
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+// Open the browser automatically
+try {
+  const { execSync } = require('child_process');
+  execSync(`start "" "${authUrl}"`, { stdio: 'ignore' });
+} catch {}
 
-rl.question('4. Paste the code here and press Enter: ', async (code) => {
-  rl.close();
+// Start a one-shot local HTTP server to catch the OAuth callback
+const server = http.createServer(async (req, res) => {
+  const parsed = url.parse(req.url, true);
+  if (parsed.pathname !== '/callback') {
+    res.end('Not found');
+    return;
+  }
+
+  const code  = parsed.query.code;
+  const error = parsed.query.error;
+
+  if (error || !code) {
+    res.writeHead(400);
+    res.end(`<h2>❌ Auth failed: ${error || 'no code returned'}</h2>`);
+    server.close();
+    console.error('\n❌  Auth failed:', error || 'no code returned');
+    process.exit(1);
+  }
+
   try {
-    const { tokens } = await oauth2Client.getToken(code.trim());
+    const { tokens } = await oauth2Client.getToken(code);
 
     if (!tokens.refresh_token) {
+      res.writeHead(400);
+      res.end(
+        '<h2>⚠️ No refresh_token received.</h2>' +
+        '<p>Go to <a href="https://myaccount.google.com/permissions">Google Account Permissions</a>, ' +
+        'revoke access for this app, then run the script again.</p>'
+      );
+      server.close();
       console.warn(
         '\n⚠️  No refresh_token returned.\n' +
-        '   This usually means the app was already authorised.\n' +
-        '   Go to https://myaccount.google.com/permissions , revoke access, then run this script again.'
+        '   Revoke access at https://myaccount.google.com/permissions then re-run.'
       );
       process.exit(1);
     }
 
-    console.log('\n✅  Success! Add this line to your .env file:\n');
-    console.log(`   YOUTUBE_REFRESH_TOKEN=${tokens.refresh_token}\n`);
+    // Auto-write the token into .env
+    const envPath = path.join(__dirname, '..', '.env');
+    if (fs.existsSync(envPath)) {
+      let envContent = fs.readFileSync(envPath, 'utf8');
+      if (envContent.includes('YOUTUBE_REFRESH_TOKEN=')) {
+        envContent = envContent.replace(
+          /YOUTUBE_REFRESH_TOKEN=.*/,
+          `YOUTUBE_REFRESH_TOKEN=${tokens.refresh_token}`
+        );
+      } else {
+        envContent += `\nYOUTUBE_REFRESH_TOKEN=${tokens.refresh_token}\n`;
+      }
+      fs.writeFileSync(envPath, envContent);
+      console.log('\n✅  Refresh token saved to .env automatically!');
+    } else {
+      console.log('\n✅  Success! Add this to your .env file:\n');
+      console.log(`   YOUTUBE_REFRESH_TOKEN=${tokens.refresh_token}\n`);
+    }
+
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(
+      '<h2>✅ Authorisation complete!</h2>' +
+      '<p>Your refresh token has been saved to <code>.env</code>. You can close this tab.</p>'
+    );
   } catch (err) {
-    console.error('\n❌  Failed to exchange code for tokens:', err.message);
-    process.exit(1);
+    res.writeHead(500);
+    res.end(`<h2>❌ Error: ${err.message}</h2>`);
+    console.error('\n❌  Token exchange failed:', err.message);
+  } finally {
+    server.close();
   }
+});
+
+server.listen(PORT, () => {
+  console.log(`Waiting for Google to redirect to http://localhost:${PORT}/callback …\n`);
 });
