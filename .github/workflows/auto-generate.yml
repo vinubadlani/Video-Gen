@@ -39,7 +39,7 @@ jobs:
       # remotion browser ensure downloads a self-contained Chromium build with
       # all its own shared libs — no system apt packages needed.
       - name: Prepare Remotion browser
-        run: npx remotion browser ensure
+        run: ./node_modules/.bin/remotion browser ensure
 
       # ── 6. Run the pipeline ──────────────────────────────────────────────────
       - name: Generate video & upload to YouTube
