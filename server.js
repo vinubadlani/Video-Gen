@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const { generateScript }          = require('./scripts/generateScript');
 const { generateAudio }           = require('./scripts/generateAudio');
 const { renderVideo }             = require('./scripts/renderVideo');
+const { uploadToYoutube }         = require('./scripts/uploadToYoutube');
 const { getRandomTopic, TOPICS }  = require('./scripts/topicPool');
 
 const app  = express();
@@ -188,11 +189,43 @@ async function runPipeline(jobId, topic) {
   });
 
   const slug = path.basename(outputPath, '.mp4');
+
+  // ── Step 4: YouTube upload (optional – requires YOUTUBE_* env vars) ────────
+  let youtubeUrl = null;
+  if (process.env.YOUTUBE_CLIENT_ID && process.env.YOUTUBE_REFRESH_TOKEN) {
+    emit('step', { step: 4, status: 'active', label: 'Uploading to YouTube', message: 'Uploading video as a YouTube Short…' });
+    try {
+      youtubeUrl = await uploadToYoutube(
+        outputPath,
+        topic,
+        `AI-generated explainer video about "${topic}"`,
+        emit
+      );
+      if (job) job.youtubeUrl = youtubeUrl;
+      emit('step', {
+        step   : 4,
+        status : 'done',
+        label  : 'Published to YouTube',
+        message: 'Video is live as a YouTube Short!',
+        payload: { youtubeUrl },
+      });
+    } catch (ytErr) {
+      emit('step', {
+        step   : 4,
+        status : 'error',
+        label  : 'YouTube Upload Failed',
+        message: ytErr.message,
+      });
+      console.error('[YouTube] Upload failed:', ytErr.message);
+    }
+  }
+
   emit('complete', {
     message    : 'Video generation complete!',
     downloadUrl: `/api/download/${jobId}`,
     previewUrl : `/api/preview/${jobId}`,
     filename   : `${slug}.mp4`,
+    youtubeUrl,
   });
 
   if (job) job.status = 'complete';
