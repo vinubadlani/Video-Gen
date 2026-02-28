@@ -35,13 +35,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ── 4. Chromium for Remotion ──────────────────────────────────────────────
-      # remotion browser ensure downloads a self-contained Chromium build with
-      # all its own shared libs — no system apt packages needed.
-      - name: Prepare Remotion browser
-        run: ./node_modules/.bin/remotion browser ensure
-
-      # ── 6. Run the pipeline ──────────────────────────────────────────────────
+      # ── 4. Run the pipeline ───────────────────────────────────────────────────
       - name: Generate video & upload to YouTube
         run: |
           TOPIC="${{ github.event.inputs.topic }}"
@@ -51,13 +45,15 @@ jobs:
             node scripts/autoGenerate.js "$TOPIC"
           fi
         env:
-          GROQ_API_KEY:              ${{ secrets.GROQ_API_KEY }}
-          ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_VOICE_ID:       ${{ secrets.ELEVENLABS_VOICE_ID }}
-          YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          YOUTUBE_PRIVACY:           public
+          GROQ_API_KEY:                ${{ secrets.GROQ_API_KEY }}
+          ELEVENLABS_API_KEY:          ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID:         ${{ secrets.ELEVENLABS_VOICE_ID }}
+          YOUTUBE_CLIENT_ID:           ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET:       ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN:       ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_PRIVACY:             public
+          # Use the pre-installed Chrome on the GitHub Actions runner
+          REMOTION_CHROME_EXECUTABLE:  /usr/bin/google-chrome-stable
 
       # ── 7. Upload the rendered MP4 as a build artifact (optional, 1-day keep) ─
       - name: Upload video artifact

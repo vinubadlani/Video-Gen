@@ -86,8 +86,7 @@ async function renderVideo(scenes, audioPath, emit = () => {}, topic = 'video', 
         lastProgress = pct;
       }
     },
-    // Silence browser console noise from headless Chrome
-    browserExecutable: undefined,
+    browserExecutable: process.env.REMOTION_CHROME_EXECUTABLE || undefined,
     logLevel          : 'error',
   });
 
