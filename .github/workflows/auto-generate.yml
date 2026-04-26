@@ -24,18 +24,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Node.js ───────────────────────────────────────────────────────────
-      - name: Set up Node.js 20
+      # ── 2. Node.js 24 (avoids Node 20 deprecation warnings) ─────────────────
+      - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
-      # ── 3. Install npm dependencies ──────────────────────────────────────────
+      # ── 3. Install Chrome (required by Remotion renderer) ────────────────────
+      - name: Install Google Chrome
+        run: |
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -y
+          sudo apt-get install -y google-chrome-stable
+          google-chrome-stable --version
+
+      # ── 4. Install npm dependencies ──────────────────────────────────────────
       - name: Install dependencies
         run: npm ci
 
-      # ── 4. Run the pipeline ───────────────────────────────────────────────────
+      # ── 5. Create output directory ───────────────────────────────────────────
+      - name: Prepare output directory
+        run: mkdir -p output public
+
+      # ── 6. Run the pipeline ───────────────────────────────────────────────────
       - name: Generate video & upload to YouTube
         run: |
           TOPIC="${{ github.event.inputs.topic }}"
@@ -47,12 +60,13 @@ jobs:
         env:
           GROQ_API_KEY:                ${{ secrets.GROQ_API_KEY }}
           ELEVENLABS_API_KEY:          ${{ secrets.ELEVENLABS_API_KEY }}
+          # ELEVENLABS_VOICE_ID is optional — falls back to a free built-in voice
           ELEVENLABS_VOICE_ID:         ${{ secrets.ELEVENLABS_VOICE_ID }}
           YOUTUBE_CLIENT_ID:           ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET:       ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN:       ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY:             public
-          # Use the pre-installed Chrome on the GitHub Actions runner
+          # Chrome installed above; stable binary path on ubuntu-latest
           REMOTION_CHROME_EXECUTABLE:  /usr/bin/google-chrome-stable
 
       # ── 7. Upload the rendered MP4 as a build artifact (optional, 1-day keep) ─
@@ -61,5 +75,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rendered-video-${{ github.run_number }}
-          path: output/*.mp4
+          path: output/
+          if-no-files-found: warn
           retention-days: 1
