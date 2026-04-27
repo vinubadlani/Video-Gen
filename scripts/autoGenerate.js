@@ -30,8 +30,6 @@ const { getRandomTopic }    = require('./topicPool');
 function validateEnv() {
   const required = [
     'GROQ_API_KEY',
-    'ELEVENLABS_API_KEY',
-    'ELEVENLABS_VOICE_ID',
     'YOUTUBE_CLIENT_ID',
     'YOUTUBE_CLIENT_SECRET',
     'YOUTUBE_REFRESH_TOKEN',
@@ -74,7 +72,7 @@ async function main() {
   console.log(`      ✓ ${script.scenes.length} scenes | title: "${script.title}"\n`);
 
   // ── 2. Audio ───────────────────────────────────────────────────────────────
-  console.log('[2/4] Generating voiceover…');
+  console.log('[2/4] Generating voiceover (Google TTS)…');
   const audioPath = await generateAudio(script.fullScript, emit);
   console.log(`      ✓ Audio ready\n`);
 

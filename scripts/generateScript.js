@@ -71,7 +71,7 @@ Output format (strictly follow):
 // ─── Parse plain-text lines into scene objects ───────────────────────────────
 function linesToScenes(lines) {
   // Auto-assign preset cycling and weight
-  const presetCycle = ['dramatic', 'minimal', 'energetic', 'dramatic', 'minimal', 'energetic', 'dramatic', 'dramatic', 'energetic', 'minimal', 'dramatic', 'energetic', 'minimal'];
+  const presetCycle = ['lyric', 'lyric', 'lyric', 'lyric', 'lyric', 'lyric', 'lyric', 'lyric', 'lyric', 'lyric', 'lyric', 'lyric', 'lyric'];
   const last = lines.length - 1;
 
   return lines.map((text, i) => {
